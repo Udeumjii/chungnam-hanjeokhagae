@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>충남 한적하개 - 반려견 맞춤 힐링 큐레이션</title>
+    <!-- Pretendard 프리미엄 폰트 CDN -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <!-- 카카오맵 JavaScript SDK (services 라이브러리 포함) -->
+    <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=7f9d9a7e0c820ca46ffb3043f1885fa1&libraries=services"></script>
+    <style>
+        :root {
+            --primary: #059669;
+            --primary-light: #ecfdf5;
+            --primary-dark: #047857;
+            --secondary: #2563eb;
+            --secondary-light: #eff6ff;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-400: #94a3b8;
+            --gray-600: #475569;
+            --gray-800: #1e293b;
+            --kakao-yellow: #fee500;
+            --kakao-brown: #191919;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.08);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background-color: #f1f5f9;
+            color: var(--gray-800);
+            margin: 0;
+            padding: 20px 12px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 24px 18px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        /* 헤더 */
+        .header { text-align: center; margin-bottom: 18px; }
+        .header h1 { margin: 0 0 4px; font-size: 1.6em; font-weight: 800; color: var(--primary); letter-spacing: -0.6px; }
+        .header p { margin: 0; font-size: 0.88em; color: var(--gray-600); font-weight: 500; }
+
+        /* 컨트롤 패널 */
+        .control-panel {
+            background: var(--gray-50);
+            padding: 12px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-200);
+            margin-bottom: 14px;
+        }
+        .control-group { display: flex; gap: 8px; margin-bottom: 8px; }
+        .control-group:last-child { margin-bottom: 0; }
+
+        .select-box {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gray-200);
+            font-size: 0.88em;
+            font-weight: 600;
+            background: #ffffff;
+            color: var(--gray-800);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .select-box:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15); }
+
+        .btn-action {
+            flex: 1.2;
+            padding: 10px 14px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 0.88em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+        }
+        .btn-green { background: var(--primary); box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25); }
+        .btn-green:active { background: var(--primary-dark); transform: scale(0.98); }
+        .btn-blue { background: var(--secondary); box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25); }
+        .btn-blue:active { background: #1d4ed8; transform: scale(0.98); }
+
+        .status-bar {
+            text-align: center;
+            font-size: 0.82em;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+            background: var(--primary-light);
+            padding: 8px 12px;
+            border-radius: 20px;
+        }
+
+        /* 지도 뷰포트 */
+        .map-wrap {
+            position: relative;
+            width: 100%;
+            height: 290px;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            margin-bottom: 14px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+        }
+        #map { width: 100%; height: 100%; }
+
+        /* 산책 플로팅 배너 */
+        .walk-floating-banner {
+            display: none;
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(8px);
+            padding: 14px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            z-index: 10;
+            border-left: 5px solid var(--primary);
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .walk-header-line { display: flex; justify-content: space-between; align-items: center; }
+        .walk-title { font-size: 0.92em; font-weight: 800; color: var(--primary-dark); }
+        .walk-close-btn { background: none; border: none; font-size: 1.1em; cursor: pointer; color: var(--gray-400); padding: 0 4px; }
+        .walk-desc { font-size: 0.82em; color: var(--gray-600); margin: 6px 0 10px 0; line-height: 1.45; }
+        .walk-nav-btn {
+            display: block;
+            text-align: center;
+            background-color: var(--kakao-yellow);
+            color: var(--kakao-brown);
+            font-size: 0.82em;
+            font-weight: 700;
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            padding: 9px 0;
+        }
+
+        /* 카테고리 필터 */
+        .category-filter {
+            display: none;
+            gap: 6px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+            padding: 2px 0 6px 0;
+            scrollbar-width: none;
+        }
+        .category-filter::-webkit-scrollbar { display: none; }
+        .filter-btn {
+            padding: 7px 14px;
+            border: 1px solid var(--gray-200);
+            background: #ffffff;
+            color: var(--gray-600);
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+        .filter-btn.active {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
+        }
+
+        /* 정렬 컨트롤 바 */
+        .sort-control-bar {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            padding: 0 2px;
+        }
+        .result-count-label { font-size: 0.82em; font-weight: 700; color: var(--gray-600); }
+        .sort-pill-group {
+            display: flex;
+            background: var(--gray-100);
+            padding: 3px;
+            border-radius: 12px;
+            gap: 2px;
+        }
+        .sort-pill-btn {
+            border: none;
+            background: transparent;
+            font-size: 0.76em;
+            font-weight: 700;
+            color: var(--gray-600);
+            padding: 5px 10px;
+            border-radius: 9px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .sort-pill-btn.active { background: white; color: var(--primary-dark); box-shadow: var(--shadow-sm); }
+
+        /* 하이브리드 산책로 큐레이션 섹션 */
+        .durunubi-container {
+            background: #f0fdf4;
+            border: 1.5px solid #a7f3d0;
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .durunubi-header { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        .durunubi-title-badge {
+            display: inline-flex;
+            align-items: center;
+            background: var(--primary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.78em;
+            font-weight: 800;
+            width: fit-content;
+        }
+        .trail-filter-group { display: flex; gap: 6px; }
+        .trail-pill {
+            flex: 1;
+            padding: 6px 8px;
+            background: white;
+            border: 1px solid #a7f3d0;
+            color: var(--primary-dark);
+            border-radius: 12px;
+            font-size: 0.76em;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .trail-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .durunubi-subcard {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: 14px;
+            margin-bottom: 10px;
+            border: 1px solid #bbf7d0;
+        }
+        .durunubi-subcard:last-child { margin-bottom: 0; }
+
+        /* 장소 카드 UI */
+        .place-card {
+            background: #ffffff;
+            padding: 16px;
+            border-radius: var(--radius-lg);
+            margin-bottom: 12px;
+            border: 1px solid var(--gray-200);
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+        .place-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--primary); }
+        .place-card.focused { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2); }
+
+        .badge-wrap { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-bottom: 8px; }
+        .badge { display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 6px; font-size: 0.74em; font-weight: 700; }
+        .badge-green { background: #dcfce7; color: #15803d; }
+        .badge-yellow { background: #fef9c3; color: #854d0e; }
+        .badge-red { background: #fee2e2; color: #b91c1c; }
+        .badge-gray { background: var(--gray-100); color: var(--gray-600); }
+
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        .skeleton-badge {
+            background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            color: transparent !important;
+            border-radius: 6px;
+            min-width: 70px;
+            height: 20px;
+        }
+
+        .card-title { margin: 0 0 6px 0; font-size: 1.06em; font-weight: 800; color: var(--gray-800); }
+        .card-addr { margin: 0; font-size: 0.82em; color: var(--gray-600); }
+        .btn-group-card { display: flex; gap: 6px; margin-top: 12px; }
+        .card-action-btn {
+            flex: 1;
+            padding: 9px 0;
+            border-radius: var(--radius-sm);
+            font-size: 0.8em;
+            font-weight: 700;
+            text-decoration: none;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-kakao-car { background-color: var(--kakao-yellow); color: var(--kakao-brown); }
+        .btn-walk-active { background-color: var(--primary-light); color: var(--primary-dark); border: 1px solid #a7f3d0; }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            background: var(--gray-50);
+            border-radius: var(--radius-lg);
+            color: var(--gray-600);
+            border: 1px dashed var(--gray-200);
+        }
+        .empty-state h3 { margin: 0 0 6px; font-size: 1.05em; color: var(--gray-800); }
+        .empty-state p { margin: 0; font-size: 0.84em; }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="header">
+            <h1>🐾 충남 한적하개</h1>
+            <p>여유 지표(Relax Index) 기반 반려견 힐링 큐레이션</p>
+        </div>
+
+        <div class="control-panel">
+            <div class="control-group">
+                <select id="region-select" class="select-box">
+                    <option value="">충청남도 전체</option>
+                    <option value="150" data-name="공주">공주시</option>
+                    <option value="131" data-name="천안">천안시</option>
+                    <option value="200" data-name="아산">아산시</option>
+                    <option value="210" data-name="서산">서산시</option>
+                    <option value="825" data-name="태안">태안군</option>
+                    <option value="270" data-name="당진">당진시</option>
+                    <option value="180" data-name="보령">보령시</option>
+                    <option value="230" data-name="논산">논산시</option>
+                    <option value="760" data-name="부여">부여군</option>
+                    <option value="800" data-name="홍성">홍성군</option>
+                    <option value="810" data-name="예산">예산군</option>
+                    <option value="770" data-name="서천">서천군</option>
+                    <option value="790" data-name="청양">청양군</option>
+                    <option value="710" data-name="금산">금산군</option>
+                    <option value="250" data-name="계룡">계룡시</option>
+                </select>
+                <button class="btn-action btn-green" onclick="searchByRegion()">선택 지역 탐색</button>
+            </div>
+
+            <div class="control-group">
+                <select id="gps-radius-select" class="select-box">
+                    <option value="5">반경 5km</option>
+                    <option value="10" selected>반경 10km</option>
+                    <option value="20">반경 20km</option>
+                    <option value="30">반경 30km (자체알고리즘)</option>
+                </select>
+                <button class="btn-action btn-blue" onclick="searchByCurrentLocation()">📍 내 주변 탐색</button>
+            </div>
+        </div>
+        
+        <div id="status" class="status-bar">충남의 한적한 여행지를 선택하거나 탐색을 시작하세요.</div>
+        
+        <div class="map-wrap">
+            <div id="map"></div>
+            <div id="walk-banner" class="walk-floating-banner">
+                <div class="walk-header-line">
+                    <div id="walk-title" class="walk-title">🐾 산책 경로 분석 중...</div>
+                    <button class="walk-close-btn" onclick="clearWalkPolyline()">✕</button>
+                </div>
+                <div id="walk-desc" class="walk-desc"></div>
+                <a id="walk-external-link" href="#" target="_blank" class="walk-nav-btn">카카오맵 내비로 이어보기</a>
+            </div>
+        </div>
+
+        <div id="filter-bar" class="category-filter">
+            <button class="filter-btn active" onclick="applyCategoryFilter('all', this)">전체</button>
+            <button class="filter-btn" onclick="applyCategoryFilter('12', this)">🌳 산책/관광</button>
+            <button class="filter-btn" onclick="applyCategoryFilter('39', this)">☕ 식당/카페</button>
+            <button class="filter-btn" onclick="applyCategoryFilter('32', this)">🏠 펜션/숙박</button>
+            <button class="filter-btn" onclick="applyCategoryFilter('etc', this)">📌 기타시설</button>
+        </div>
+
+        <!-- 정렬 바 -->
+        <div id="sort-bar" class="sort-control-bar">
+            <span id="result-count" class="result-count-label">장소 0곳</span>
+            <div class="sort-pill-group">
+                <button id="sort-default" class="sort-pill-btn active" onclick="setSortMode('default')">기본순</button>
+                <button id="sort-relax" class="sort-pill-btn" onclick="setSortMode('relax')">🟢 한적한 곳 우선</button>
+            </div>
+        </div>
+
+        <!-- 하이브리드 산책로 큐레이션 섹션 -->
+        <div id="durunubi-section" class="durunubi-container" style="display: none;">
+            <div class="durunubi-header">
+                <span id="durunubi-badge-title" class="durunubi-title-badge">🥾 반려견 맞춤 추천 산책 코스</span>
+                <div class="trail-filter-group">
+                    <button class="trail-pill active" onclick="filterDurunubiTrail('short', this)">🐾 소형·노령견 (20~30분)</button>
+                    <button class="trail-pill" onclick="filterDurunubiTrail('long', this)">🐕 대형·활동견 (둘레길 코스)</button>
+                </div>
+            </div>
+            <div id="durunubi-card-list"></div>
+        </div>
+
+        <div id="filter-empty" class="empty-state" style="display: none;">
+            <h3>😢 해당 장소가 없습니다</h3>
+            <p>선택하신 카테고리의 장소가 현재 지역에는 없습니다.</p>
+        </div>
+
+        <div id="result-list"></div>
+    </div>
+
+    <script>
+        const KTO_API_KEY = "682286fb9e444da9ccdffad41b00da998b8818a5ded7e70773022b0b1fbf2446"; 
+        const KAKAO_REST_KEY = "25509e626571eb28f1973cef28871c54";
+
+        let map;
+        let currentMarkers = []; 
+        let cachedDurunubiCourses = null;
+        let cachedChungnamPlaces = null; 
+        let activeWalkPolyline = null; 
+        let userCurrentPosition = null; 
+        
+        let currentSortMode = 'default';
+        let currentActiveRegionName = "충남";
+        let currentActiveShortName = "충남";
+        let currentRegionPlaces = [];
+
+        function getDistanceKm(lat1, lon1, lat2, lon2) {
+            const R = 6371; 
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        async function fetchAllDurunubi() {
+            if (cachedDurunubiCourses) return cachedDurunubiCourses;
+            try {
+                const dParams = new URLSearchParams({
+                    serviceKey: KTO_API_KEY, numOfRows: "2000", pageNo: "1", MobileOS: "ETC", MobileApp: "AppTest", _type: "json", brdDiv: "DNWW" 
+                });
+                const dUrl = `https://apis.data.go.kr/B551011/Durunubi/courseList?${decodeURIComponent(dParams.toString())}`;
+                const dRes = await fetch(dUrl);
+                const text = await dRes.text();
+                if (!text.startsWith("{")) return [];
+                const dData = JSON.parse(text);
+                let items = dData?.response?.body?.items?.item || [];
+                if (!Array.isArray(items)) items = [items];
+                cachedDurunubiCourses = items;
+                return items;
+            } catch(e) { return []; }
+        }
+
+        async function setupDurunubiSection(regionName, shortName) {
+            currentActiveRegionName = regionName;
+            currentActiveShortName = shortName;
+            const container = document.getElementById('durunubi-section');
+            container.style.display = 'block';
+
+            const pills = document.querySelectorAll('.trail-pill');
+            pills.forEach(p => p.classList.remove('active'));
+            pills[0].classList.add('active');
+
+            renderHybridTrail('short');
+        }
+
+        async function filterDurunubiTrail(trailType, btnElement) {
+            document.querySelectorAll('.trail-pill').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            renderHybridTrail(trailType);
+        }
+
+        async function renderHybridTrail(trailType) {
+            const listEl = document.getElementById('durunubi-card-list');
+            listEl.innerHTML = "";
+
+            if (trailType === 'short') {
+                const walkPlaces = currentRegionPlaces.filter(p => p.contenttypeid === "12");
+                const targetWalks = (walkPlaces.length > 0 ? walkPlaces : currentRegionPlaces).slice(0, 2);
+
+                if (targetWalks.length === 0) {
+                    listEl.innerHTML = `<div style="text-align:center; padding:12px; font-size:0.82em; color:var(--gray-600);">주변에 등록된 산책 명소가 없습니다.</div>`;
+                    return;
+                }
+
+                targetWalks.forEach(place => {
+                    const kakaoSearchLink = `https://map.kakao.com/link/search/${encodeURIComponent(place.title)}`;
+                    const distInfo = place.calculatedDist ? `🚗 약 ${place.calculatedDist.toFixed(1)}km | ` : '';
+
+                    const subCard = document.createElement('div');
+                    subCard.className = 'durunubi-subcard';
+                    subCard.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <h4 style="margin:0; font-size:0.95em; color:var(--primary-dark);">🌿 ${place.title}</h4>
+                            <span class="badge" style="background:#dbeafe; color:#1e40af;">🐾 소형·노령견 안심</span>
+                        </div>
+                        <p style="margin:0 0 6px 0; font-size:0.8em; color:var(--gray-600);">📍 ${place.addr1 || currentActiveRegionName}</p>
+                        <div style="font-size:0.8em; background:#f8fafc; padding:6px 10px; border-radius:6px; font-weight:600; color:var(--gray-800); border:1px solid #e2e8f0;">
+                            ${distInfo}⏱️ 권장 소요시간: 약 20~30분 | 🚩 평지 중심
+                        </div>
+                        <p style="font-size:0.78em; margin:6px 0 0 0; color:var(--gray-600); line-height:1.4;">관절에 무리 없는 완만한 동선으로, 노령견과 소형견이 여유롭게 산책하기 가장 이상적인 공간입니다.</p>
+                        <a href="${kakaoSearchLink}" target="_blank" class="card-action-btn btn-kakao-car" style="display:block; margin-top:8px; padding:6px 0;">📍 산책 장소 카카오 지도로 보기</a>
+                    `;
+                    listEl.appendChild(subCard);
+                });
+            } else {
+                const allCourses = await fetchAllDurunubi();
+                
+                let regionalCourses = [];
+                if (currentActiveShortName && currentActiveShortName !== "충남") {
+                    regionalCourses = allCourses.filter(course => 
+                        course.sigun && (course.sigun.includes(currentActiveShortName) || course.sigun.includes(currentActiveRegionName))
+                    );
+                }
+
+                if (regionalCourses.length > 0) {
+                    regionalCourses.slice(0, 2).forEach(course => {
+                        const diffLevel = course.crsLevel === '1' ? '쉬움' : (course.crsLevel === '2' ? '보통' : '어려움');
+                        const kakaoSearchLink = `https://map.kakao.com/link/search/${encodeURIComponent(course.crsKorNm)}`;
+
+                        const subCard = document.createElement('div');
+                        subCard.className = 'durunubi-subcard';
+                        subCard.innerHTML = `
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                <h4 style="margin:0; font-size:0.95em; color:var(--primary-dark);">${course.crsKorNm}</h4>
+                                <span class="badge" style="background:#fef3c7; color:#92400e;">🥾 ${currentActiveRegionName} 공식 둘레길</span>
+                            </div>
+                            <p style="margin:0 0 6px 0; font-size:0.8em; color:var(--gray-600);">📍 ${course.sigun}</p>
+                            <div style="font-size:0.8em; background:#f8fafc; padding:6px 10px; border-radius:6px; font-weight:600; color:var(--gray-800); border:1px solid #e2e8f0;">
+                                ⏱️ 코스 소요시간: 약 ${course.crsTotlRqrmHour}분 | 📏 ${course.crsDstnc}km | 🚩 난이도: ${diffLevel}
+                            </div>
+                            <p style="font-size:0.78em; margin:6px 0 0 0; color:var(--gray-600); line-height:1.4;">자연 풍광을 만끽할 수 있는 둘레길 코스입니다.</p>
+                            <a href="${kakaoSearchLink}" target="_blank" class="card-action-btn btn-kakao-car" style="display:block; margin-top:8px; padding:6px 0;">📍 카카오맵에서 코스 전체 확인</a>
+                        `;
+                        listEl.appendChild(subCard);
+                    });
+                    return;
+                }
+
+                if (currentActiveShortName && currentActiveShortName !== "충남") {
+                    const naturePlaces = currentRegionPlaces.filter(p => p.contenttypeid === "12");
+                    const activePlaces = naturePlaces.length > 2 ? naturePlaces.slice(2, 4) : naturePlaces.slice(0, 2);
+
+                    if (activePlaces.length > 0) {
+                        activePlaces.forEach(place => {
+                            const kakaoSearchLink = `https://map.kakao.com/link/search/${encodeURIComponent(place.title)}`;
+                            const distInfo = place.calculatedDist ? `🚗 약 ${place.calculatedDist.toFixed(1)}km | ` : '';
+
+                            const subCard = document.createElement('div');
+                            subCard.className = 'durunubi-subcard';
+                            subCard.innerHTML = `
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                    <h4 style="margin:0; font-size:0.95em; color:var(--primary-dark);">🏃 ${place.title}</h4>
+                                    <span class="badge" style="background:#fef3c7; color:#92400e;">🐕 ${currentActiveRegionName} 추천 롱코스</span>
+                                </div>
+                                <p style="margin:0 0 6px 0; font-size:0.8em; color:var(--gray-600);">📍 ${place.addr1 || currentActiveRegionName}</p>
+                                <div style="font-size:0.8em; background:#f8fafc; padding:6px 10px; border-radius:6px; font-weight:600; color:var(--gray-800); border:1px solid #e2e8f0;">
+                                    ${distInfo}⏱️ 권장 소요시간: 60분 이상 | 🚩 야외 활동형 코스
+                                </div>
+                                <p style="font-size:0.78em; margin:6px 0 0 0; color:var(--gray-600); line-height:1.4;">${currentActiveRegionName} 인근에서 시야가 트이고 동선이 넓어, 활동량이 많은 대형견이 충분히 산책하기 적합한 추천 명소입니다.</p>
+                                <a href="${kakaoSearchLink}" target="_blank" class="card-action-btn btn-kakao-car" style="display:block; margin-top:8px; padding:6px 0;">📍 산책 장소 카카오 지도로 보기</a>
+                            `;
+                            listEl.appendChild(subCard);
+                        });
+                        return;
+                    }
+                }
+
+                const chungnamCourses = allCourses.filter(course => 
+                    course.sigun && (course.sigun.includes("충남") || course.sigun.includes("충청남도"))
+                );
+                chungnamCourses.slice(0, 2).forEach(course => {
+                    const diffLevel = course.crsLevel === '1' ? '쉬움' : (course.crsLevel === '2' ? '보통' : '어려움');
+                    const kakaoSearchLink = `https://map.kakao.com/link/search/${encodeURIComponent(course.crsKorNm)}`;
+
+                    const subCard = document.createElement('div');
+                    subCard.className = 'durunubi-subcard';
+                    subCard.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <h4 style="margin:0; font-size:0.95em; color:var(--primary-dark);">${course.crsKorNm}</h4>
+                            <span class="badge" style="background:#fef3c7; color:#92400e;">🥾 충남 대표 둘레길</span>
+                        </div>
+                        <p style="margin:0 0 6px 0; font-size:0.8em; color:var(--gray-600);">📍 ${course.sigun}</p>
+                        <div style="font-size:0.8em; background:#f8fafc; padding:6px 10px; border-radius:6px; font-weight:600; color:var(--gray-800); border:1px solid #e2e8f0;">
+                            ⏱️ 코스 소요시간: 약 ${course.crsTotlRqrmHour}분 | 📏 ${course.crsDstnc}km | 🚩 난이도: ${diffLevel}
+                        </div>
+                        <p style="font-size:0.78em; margin:6px 0 0 0; color:var(--gray-600); line-height:1.4;">충남의 자연 풍광을 만끽할 수 있는 둘레길 코스입니다.</p>
+                        <a href="${kakaoSearchLink}" target="_blank" class="card-action-btn btn-kakao-car" style="display:block; margin-top:8px; padding:6px 0;">📍 카카오맵에서 코스 전체 확인</a>
+                    `;
+                    listEl.appendChild(subCard);
+                });
+            }
+        }
+
+        // ==========================================================
+        // 🔄 [핵심 수정] 데이터 수집 단계에서 contenttypeid=38 노이즈 원천 차단
+        // ==========================================================
+        async function fetchAllChungnamPlaces() {
+            if (cachedChungnamPlaces && cachedChungnamPlaces.length > 0) return cachedChungnamPlaces;
+
+            let allPlaces = [];
+            for (let page = 1; page <= 3; page++) {
+                try {
+                    const petParams = new URLSearchParams({
+                        serviceKey: KTO_API_KEY, numOfRows: "200", pageNo: page.toString(), MobileOS: "ETC", MobileApp: "AppTest", _type: "json", lDongRegnCd: "44"
+                    });
+                    const petUrl = `https://apis.data.go.kr/B551011/KorPetTourService2/areaBasedList2?${decodeURIComponent(petParams.toString())}`;
+                    const res = await fetch(petUrl);
+                    const text = await res.text();
+                    if (!text.startsWith("{")) break;
+
+                    const data = JSON.parse(text);
+                    let items = data?.response?.body?.items?.item || [];
+                    if (!Array.isArray(items)) items = [items];
+                    
+                    if (items.length === 0 || !items[0].contentid) break;
+                    allPlaces = allPlaces.concat(items);
+
+                    const totalCount = data?.response?.body?.totalCount || 0;
+                    if (allPlaces.length >= totalCount) break;
+                } catch(e) { break; }
+            }
+
+            const uniqueMap = new Map();
+            allPlaces.forEach(item => {
+                // 💡 [기획 의도 일치] 올리브영, 대형마트 등 쇼핑시설(38)은 데이터 파이프라인에서 원천 차단
+                if (item.contentid && item.contenttypeid !== "38" && !uniqueMap.has(item.contentid)) {
+                    uniqueMap.set(item.contentid, item);
+                }
+            });
+
+            cachedChungnamPlaces = Array.from(uniqueMap.values());
+            return cachedChungnamPlaces;
+        }
+
+        async function searchByRegion() {
+            const selectEl = document.getElementById('region-select');
+            const sigunguCd = selectEl.value;
+            const regionName = selectEl.options[selectEl.selectedIndex].text;
+            const shortName = selectEl.options[selectEl.selectedIndex].getAttribute('data-name') || "충남";
+            
+            clearWalkPolyline();
+            const status = document.getElementById('status');
+            status.innerText = `🔍 [${regionName}] 전역의 장소를 큐레이션 중입니다...`;
+            document.getElementById('result-list').innerHTML = "";
+            document.getElementById('filter-bar').style.display = 'none';
+            document.getElementById('sort-bar').style.display = 'none';
+
+            try {
+                const allPlaces = await fetchAllChungnamPlaces();
+                
+                let targetPlaces = [];
+                if (!sigunguCd) {
+                    targetPlaces = allPlaces;
+                } else {
+                    targetPlaces = allPlaces.filter(place => {
+                        const matchCode = place.lDongSignguCd && place.lDongSignguCd === sigunguCd;
+                        const matchAddr = place.addr1 && (place.addr1.includes(shortName) || place.addr1.includes(regionName));
+                        return matchCode || matchAddr;
+                    });
+                }
+
+                if (targetPlaces.length === 0) {
+                    showEmptyState(regionName);
+                    return;
+                }
+
+                currentRegionPlaces = targetPlaces;
+
+                let centerLat = targetPlaces[0].mapy || 36.6588;
+                let centerLng = targetPlaces[0].mapx || 126.6728;
+                initMap(centerLat, centerLng, sigunguCd ? 8 : 10, `${regionName} 중심`);
+                
+                await setupDurunubiSection(regionName, shortName);
+                await renderPlaces(targetPlaces, null, null); 
+                status.innerText = `✨ [${regionName}] 추천 장소 ${targetPlaces.length}곳을 발견했습니다!`;
+            } catch (e) {
+                status.innerText = "❌ 일시적인 네트워크 오류가 발생했습니다.";
+            }
+        }
+
+        function searchByCurrentLocation() {
+            if (navigator.geolocation) {
+                document.getElementById('status').innerText = "🛰️ 현 위치 GPS 신호를 분석하고 있습니다...";
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        userCurrentPosition = { lat, lng };
+
+                        const geocoder = new kakao.maps.services.Geocoder();
+                        geocoder.coord2RegionCode(lng, lat, (result, geoStatus) => {
+                            let locName = "내 위치";
+                            let shortName = "충남";
+
+                            if (geoStatus === kakao.maps.services.Status.OK && result.length > 0) {
+                                const r2 = result[0].region_2depth_name;
+                                if (r2) {
+                                    locName = r2;
+                                    shortName = r2.replace(/(시|군)$/, '');
+                                }
+                            }
+                            processLocationBased(lat, lng, locName, shortName);
+                        });
+                    }, 
+                    () => alert("위치 권한을 허용해 주셔야 내 주변 탐색이 가능합니다.")
+                );
+            }
+        }
+
+        async function processLocationBased(lat, lng, centerName, detectedShort) {
+            clearWalkPolyline();
+            const radiusKm = parseInt(document.getElementById('gps-radius-select').value); 
+            const status = document.getElementById('status');
+            status.innerText = `🐾 [${centerName}] 기준 반경 ${radiusKm}km 데이터를 산출 중입니다...`;
+            document.getElementById('filter-bar').style.display = 'none';
+            document.getElementById('sort-bar').style.display = 'none';
+
+            let zoomLevel = radiusKm <= 5 ? 6 : (radiusKm <= 10 ? 7 : (radiusKm <= 20 ? 8 : 9));
+            initMap(lat, lng, zoomLevel, centerName);
+
+            try {
+                const allPlaces = await fetchAllChungnamPlaces();
+                let nearbyPlaces = [];
+
+                allPlaces.forEach(place => {
+                    if (place.mapy && place.mapx) {
+                        const dist = getDistanceKm(lat, lng, place.mapy, place.mapx);
+                        if (dist <= radiusKm) {
+                            place.calculatedDist = dist;
+                            nearbyPlaces.push(place);
+                        }
+                    }
+                });
+
+                nearbyPlaces.sort((a, b) => a.calculatedDist - b.calculatedDist);
+
+                if (nearbyPlaces.length === 0) {
+                    status.innerText = "탐색 완료";
+                    document.getElementById('result-list').innerHTML = `<div class="empty-state"><h3>😢 장소 없음</h3><p>선택하신 반경 ${radiusKm}km 내에 충남 소속 동반 장소가 없습니다.</p></div>`;
+                    return;
+                }
+
+                currentRegionPlaces = nearbyPlaces;
+
+                let finalRegionName = centerName;
+                let finalShortName = detectedShort;
+
+                if (!finalShortName || finalShortName === "충남") {
+                    for (const p of nearbyPlaces) {
+                        if (p.addr1) {
+                            const m = p.addr1.match(/(천안|공주|보령|아산|서산|논산|계룡|당진|금산|부여|서천|청양|홍성|예산|태안)/);
+                            if (m) {
+                                finalShortName = m[1];
+                                const isGun = ["금산","부여","서천","청양","홍성","예산","태안"].includes(m[1]);
+                                finalRegionName = m[1] + (isGun ? "군" : "시");
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                await setupDurunubiSection(finalRegionName, finalShortName);
+                await renderPlaces(nearbyPlaces, lat, lng);
+                // 💡 [개수 완전 일치] nearbyPlaces.length가 실제 카드 렌더링 개수와 100% 일치합니다.
+                status.innerText = `✨ [${finalRegionName}] 반경 ${radiusKm}km 내 장소 ${nearbyPlaces.length}곳을 발견했습니다!`;
+            } catch (e) {
+                status.innerText = "❌ 데이터를 불러오는 중 오류가 발생했습니다.";
+            }
+        }
+
+        function initMap(lat, lng, zoomLevel, centerName) {
+            const container = document.getElementById('map');
+            map = new kakao.maps.Map(container, { center: new kakao.maps.LatLng(lat, lng), level: zoomLevel });
+            const iwContent = `<div style="padding:6px 10px; font-size:0.82em; text-align:center; color:var(--primary-dark); font-weight:800;">📍 ${centerName}</div>`;
+            new kakao.maps.InfoWindow({ content : iwContent }).open(map, new kakao.maps.Marker({ position: new kakao.maps.LatLng(lat, lng), map: map }));
+        }
+
+        function showEmptyState(regionName) {
+            document.getElementById('status').innerText = "탐색 완료";
+            document.getElementById('result-list').innerHTML = `<div class="empty-state"><h3>😢 검색 결과 없음</h3><p>[${regionName}]에 등록된 관광 정보가 없습니다.</p></div>`;
+            document.getElementById('filter-bar').style.display = 'none';
+            document.getElementById('sort-bar').style.display = 'none';
+            document.getElementById('durunubi-section').style.display = 'none';
+        }
+
+        function applyCategoryFilter(category, btnElement) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            let visibleCount = 0;
+            const cards = document.querySelectorAll('.place-card');
+            cards.forEach(card => {
+                if (category === 'all' || card.getAttribute('data-category') === category) {
+                    card.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            currentMarkers.forEach(item => {
+                if (category === 'all' || item.category === category) {
+                    item.marker.setMap(map); 
+                } else {
+                    item.marker.setMap(null); 
+                }
+            });
+
+            document.getElementById('result-count').innerText = `장소 ${visibleCount}곳`;
+            document.getElementById('filter-empty').style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+
+        function setSortMode(mode) {
+            currentSortMode = mode;
+            document.querySelectorAll('.sort-pill-btn').forEach(b => b.classList.remove('active'));
+            if (mode === 'relax') {
+                document.getElementById('sort-relax').classList.add('active');
+            } else {
+                document.getElementById('sort-default').classList.add('active');
+            }
+            reorderCards();
+        }
+
+        function reorderCards() {
+            const list = document.getElementById('result-list');
+            const cards = Array.from(list.querySelectorAll('.place-card'));
+
+            if (currentSortMode === 'relax') {
+                cards.sort((a, b) => {
+                    const rateA = parseFloat(a.getAttribute('data-rate')) || 50;
+                    const rateB = parseFloat(b.getAttribute('data-rate')) || 50;
+                    return rateA - rateB;
+                });
+            } else {
+                cards.sort((a, b) => {
+                    const idxA = parseInt(a.getAttribute('data-index'));
+                    const idxB = parseInt(b.getAttribute('data-index'));
+                    return idxA - idxB;
+                });
+            }
+            cards.forEach(card => list.appendChild(card));
+        }
+
+        function focusPlaceOnMap(lat, lng, title, index) {
+            if (!lat || !lng) return;
+            const pos = new kakao.maps.LatLng(lat, lng);
+            map.panTo(pos);
+
+            currentMarkers.forEach(m => m.infowindow.close());
+            if (currentMarkers[index] && currentMarkers[index].infowindow) {
+                currentMarkers[index].infowindow.open(map, currentMarkers[index].marker);
+            }
+
+            document.querySelectorAll('.place-card').forEach(c => c.classList.remove('focused'));
+            const targetCard = document.getElementById(`place-card-${index}`);
+            if (targetCard) targetCard.classList.add('focused');
+
+            const mapWrap = document.querySelector('.map-wrap');
+            mapWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function clearWalkPolyline() {
+            if (activeWalkPolyline) {
+                activeWalkPolyline.setMap(null);
+                activeWalkPolyline = null;
+            }
+            document.getElementById('walk-banner').style.display = 'none';
+        }
+
+        async function inspectWalkingRoute(destX, destY, destTitle) {
+            if (!userCurrentPosition) {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        pos => {
+                            userCurrentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                            inspectWalkingRoute(destX, destY, destTitle);
+                        },
+                        () => {
+                            alert("내 위치를 확인할 수 없어 카카오 지도 검색으로 이동합니다.");
+                            window.open(`https://map.kakao.com/link/search/${encodeURIComponent(destTitle)}`, '_blank');
+                        }
+                    );
+                }
+                return;
+            }
+
+            const banner = document.getElementById('walk-banner');
+            const titleEl = document.getElementById('walk-title');
+            const descEl = document.getElementById('walk-desc');
+            const linkEl = document.getElementById('walk-external-link');
+            
+            banner.style.display = 'block';
+            titleEl.innerText = `🐾 [${destTitle}] 안심 산책로 계산 중...`;
+            descEl.innerText = "보행자 전용 도로망 벡터를 파싱하고 있습니다.";
+
+            const fallbackWalkUrl = `https://map.kakao.com/link/by/walk/${encodeURIComponent('내 위치')},${userCurrentPosition.lat},${userCurrentPosition.lng}/${encodeURIComponent(destTitle)},${destY},${destX}`;
+            linkEl.href = fallbackWalkUrl;
+
+            const walkApiUrl = `https://dapi.kakao.com/v2/routing/walk?start_x=${userCurrentPosition.lng}&start_y=${userCurrentPosition.lat}&end_x=${destX}&end_y=${destY}`;
+
+            try {
+                const response = await fetch(walkApiUrl, {
+                    method: 'GET',
+                    headers: { 'Authorization': `KakaoAK ${KAKAO_REST_KEY}` }
+                });
+
+                if (!response.ok) throw new Error("API 통신 제한");
+                const data = await response.json();
+
+                if (data.status === "OK" && data.route && data.route.legs) {
+                    const leg = data.route.legs[0];
+                    const linePath = [];
+
+                    leg.steps.forEach(step => {
+                        if (step.path && step.path.points) {
+                            step.path.points.forEach(pt => {
+                                linePath.push(new kakao.maps.LatLng(pt[1], pt[0]));
+                            });
+                        }
+                    });
+
+                    clearWalkPolyline();
+
+                    activeWalkPolyline = new kakao.maps.Polyline({
+                        path: linePath,
+                        strokeWeight: 6,
+                        strokeColor: '#059669',
+                        strokeOpacity: 0.85,
+                        strokeStyle: 'solid'
+                    });
+                    activeWalkPolyline.setMap(map);
+
+                    const bounds = new kakao.maps.LatLngBounds();
+                    linePath.forEach(pt => bounds.extend(pt));
+                    map.setBounds(bounds);
+
+                    const totalDistM = data.route.properties.totalDistance;
+                    const totalSec = data.route.properties.totalTime;
+                    const distKm = (totalDistM / 1000).toFixed(2);
+                    const minutes = Math.round(totalSec / 60);
+
+                    const dogSuitability = minutes <= 25 
+                        ? '🟢 소형견·노령견 추천 (가벼운 산책 코스)' 
+                        : '🔵 중·대형견 추천 (활동량 충족 코스)';
+
+                    titleEl.innerText = `🐾 안심 산책길: 약 ${distKm}km (${minutes}분 소요)`;
+                    descEl.innerHTML = `<strong>${dogSuitability}</strong><br>초록색 보행자 산책선이 지도에 렌더링되었습니다.`;
+                    
+                    if (data.route.properties.landingUrl) {
+                        linkEl.href = data.route.properties.landingUrl;
+                    }
+                    banner.style.display = 'block';
+                    window.scrollTo({ top: 120, behavior: 'smooth' });
+                } else {
+                    throw new Error("경로 데이터 없음");
+                }
+            } catch (err) {
+                banner.style.display = 'none';
+                window.open(fallbackWalkUrl, '_blank');
+            }
+        }
+
+        async function renderPlaces(places, userLat, userLng) {
+            const list = document.getElementById('result-list');
+            list.innerHTML = "";
+            document.getElementById('filter-empty').style.display = 'none';
+            
+            currentMarkers.forEach(item => item.marker.setMap(null));
+            currentMarkers = [];
+
+            const filterBar = document.getElementById('filter-bar');
+            filterBar.style.display = 'flex';
+            filterBar.scrollLeft = 0; 
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('.filter-btn').classList.add('active'); 
+
+            const sortBar = document.getElementById('sort-bar');
+            sortBar.style.display = 'flex';
+            // 💡 [카운트 일치]
+            document.getElementById('result-count').innerText = `장소 ${places.length}곳`;
+
+            const bounds = new kakao.maps.LatLngBounds();
+            if (userLat && userLng) bounds.extend(new kakao.maps.LatLng(userLat, userLng));
+
+            // 이미 fetchAllChungnamPlaces에서 38번이 차단되어 있으므로 places가 순수 관광/힐링 장소 목록임
+            places.forEach((place, index) => {
+                let typeBadge = '', categoryType = ''; 
+                if (place.contenttypeid === "12") { typeBadge = '🌳 산책/관광'; categoryType = '12'; } 
+                else if (place.contenttypeid === "39") { typeBadge = '☕ 식당/카페'; categoryType = '39'; } 
+                else if (place.contenttypeid === "32") { typeBadge = '🏠 펜션/숙박'; categoryType = '32'; } 
+                else { typeBadge = '📌 기타시설'; categoryType = 'etc'; }
+
+                let distanceHtml = '';
+                let actionButtonsHtml = '';
+                const encodedTitle = encodeURIComponent(place.title);
+
+                if (userLat && userLng) {
+                    const distanceKm = place.calculatedDist ? place.calculatedDist.toFixed(1) : "?";
+                    distanceHtml = `<span class="badge badge-gray" style="color:var(--secondary); font-weight:700;">🚗 ${distanceKm}km</span>`;
+                    const carLink = `https://map.kakao.com/link/by/car/${encodeURIComponent('내 위치')},${userLat},${userLng}/${encodedTitle},${place.mapy},${place.mapx}`;
+                    
+                    actionButtonsHtml = `
+                        <div class="btn-group-card">
+                            <a href="${carLink}" target="_blank" class="card-action-btn btn-kakao-car">🚕 길안내</a>
+                            <button onclick="inspectWalkingRoute(${place.mapx}, ${place.mapy}, '${place.title.replace(/'/g, "\\'")}')" class="card-action-btn btn-walk-active">🚶 안심 도보</button>
+                        </div>
+                    `;
+                } else {
+                    const placeLink = `https://map.kakao.com/link/map/${encodedTitle},${place.mapy},${place.mapx}`;
+                    actionButtonsHtml = `
+                        <div class="btn-group-card">
+                            <a href="${placeLink}" target="_blank" class="card-action-btn btn-kakao-car">📍 카카오 지도 보기</a>
+                        </div>
+                    `;
+                }
+
+                const card = document.createElement('div');
+                card.className = `place-card`;
+                card.id = `place-card-${index}`;
+                card.setAttribute('data-category', categoryType); 
+                card.setAttribute('data-index', index.toString());
+                card.setAttribute('data-rate', '50');
+                card.innerHTML = `
+                    <div class="badge-wrap">
+                        <span class="badge badge-gray">${typeBadge}</span>
+                        <span id="congestion-badge-${index}" class="badge skeleton-badge">여유 지표 분석</span>
+                        ${distanceHtml}
+                    </div>
+                    <h3 class="card-title">${place.title}</h3>
+                    <p class="card-addr">📍 ${place.addr1 || '상세 주소 미제공'}</p>
+                    ${actionButtonsHtml}
+                `;
+
+                card.addEventListener('click', (e) => {
+                    if (e.target.closest('a') || e.target.closest('button')) return;
+                    focusPlaceOnMap(place.mapy, place.mapx, place.title, index);
+                });
+
+                list.appendChild(card);
+
+                if (place.mapy && place.mapx) {
+                    const placePosition = new kakao.maps.LatLng(place.mapy, place.mapx);
+                    const marker = new kakao.maps.Marker({ position: placePosition, map: map });
+                    const iwContent = `<div style="padding:6px 10px; font-size:0.8em; text-align:center; font-weight:700;">${place.title}</div>`;
+                    const infowindow = new kakao.maps.InfoWindow({ content : iwContent });
+                    
+                    kakao.maps.event.addListener(marker, 'click', () => {
+                        infowindow.open(map, marker);
+                    });
+                    
+                    bounds.extend(placePosition);
+                    currentMarkers.push({ marker: marker, category: categoryType, infowindow: infowindow });
+                }
+            });
+
+            if (!bounds.isEmpty()) {
+                map.setBounds(bounds);
+            }
+
+            const congestionPromises = places.map(async (place, index) => {
+                const badgeEl = document.getElementById(`congestion-badge-${index}`);
+                const cardEl = document.getElementById(`place-card-${index}`);
+                try {
+                    const areaCd = place.lDongRegnCd || "44"; 
+                    const signguCd = place.lDongSignguCd ? (areaCd + place.lDongSignguCd) : "44150"; 
+                    const rateParams = new URLSearchParams({
+                        serviceKey: KTO_API_KEY, numOfRows: "1", pageNo: "1", MobileOS: "ETC", MobileApp: "AppTest", _type: "json",
+                        areaCd: areaCd, signguCd: signguCd, tAtsNm: place.title
+                    });
+                    const rateUrl = `https://apis.data.go.kr/B551011/TatsCnctrRateService/tatsCnctrRatedList?${decodeURIComponent(rateParams.toString())}`;
+                    const rateRes = await fetch(rateUrl);
+                    
+                    if (rateRes.ok) {
+                        const textData = await rateRes.text();
+                        if (textData.startsWith("{")) {
+                            const rateData = JSON.parse(textData);
+                            const rateItem = rateData?.response?.body?.items?.item;
+                            if (rateItem && badgeEl) {
+                                const rate = parseFloat(Array.isArray(rateItem) ? rateItem[0].cnctrRate : rateItem.cnctrRate);
+                                if (cardEl) cardEl.setAttribute('data-rate', rate.toString());
+                                
+                                if (rate <= 40) {
+                                    badgeEl.className = "badge badge-green";
+                                    badgeEl.innerHTML = `🟢 매우 한적 (${rate}%)`;
+                                } else if (rate <= 65) {
+                                    badgeEl.className = "badge badge-yellow";
+                                    badgeEl.innerHTML = `🟡 혼잡도 보통 (${rate}%)`;
+                                } else {
+                                    badgeEl.className = "badge badge-red";
+                                    badgeEl.innerHTML = `🔴 혼잡 (${rate}%)`;
+                                }
+
+                                if (currentSortMode === 'relax') reorderCards();
+                                return;
+                            }
+                        }
+                    }
+                    if (badgeEl) {
+                        badgeEl.className = "badge badge-gray";
+                        badgeEl.innerHTML = `⚪ 혼잡도 보통`;
+                        if (cardEl) cardEl.setAttribute('data-rate', '50');
+                    }
+                } catch(e) {
+                    if (badgeEl) {
+                        badgeEl.className = "badge badge-gray";
+                        badgeEl.innerHTML = `⚪ 정보 미제공`;
+                        if (cardEl) cardEl.setAttribute('data-rate', '50');
+                    }
+                }
+            });
+
+            Promise.allSettled(congestionPromises);
+        }
+    </script>
+</body>
+</html>
