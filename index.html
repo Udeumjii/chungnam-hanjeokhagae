@@ -424,6 +424,9 @@
         let currentActiveShortName = "충남";
         let currentRegionPlaces = [];
 
+        // 🌟 [핵심] 공공 API 중복 호출을 막아 쿼터를 보호하는 인메모리 캐시 저장소
+        const congestionCache = new Map();
+
         function getDistanceKm(lat1, lon1, lat2, lon2) {
             const R = 6371; 
             const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -766,7 +769,7 @@
         function initMap(lat, lng, zoomLevel, centerName) {
             const container = document.getElementById('map');
             map = new kakao.maps.Map(container, { center: new kakao.maps.LatLng(lat, lng), level: zoomLevel });
-            const iwContent = `<div style="padding:6px 10px; font-size:0.82em; text-align:center; color:var(--primary-dark); font-weight:800;">📍 ${centerName}</div>`;
+            const iwContent = `<div style="padding:6px 10px; font-size:0.8em; text-align:center; color:var(--primary-dark); font-weight:800;">📍 ${centerName}</div>`;
             new kakao.maps.InfoWindow({ content : iwContent }).open(map, new kakao.maps.Marker({ position: new kakao.maps.LatLng(lat, lng), map: map }));
         }
 
@@ -973,6 +976,7 @@
             const bounds = new kakao.maps.LatLngBounds();
             if (userLat && userLng) bounds.extend(new kakao.maps.LatLng(userLat, userLng));
 
+            // 1단계: 카드 즉시 렌더링
             places.forEach((place, index) => {
                 let typeBadge = '', categoryType = ''; 
                 if (place.contenttypeid === "12") { typeBadge = '🌳 산책/관광'; categoryType = '12'; } 
@@ -1005,6 +1009,12 @@
                     `;
                 }
 
+                // 산책/관광지(12)만 여유 지표 분석 스켈레톤 표출, 일반 시설은 바로 '보통' 처리하여 낭비 방지
+                const isNatureSpot = place.contenttypeid === "12";
+                const initialBadgeHtml = isNatureSpot 
+                    ? `<span id="congestion-badge-${index}" class="badge skeleton-badge">여유 지표 분석</span>`
+                    : `<span id="congestion-badge-${index}" class="badge badge-gray">⚪ 혼잡도 보통</span>`;
+
                 const card = document.createElement('div');
                 card.className = `place-card`;
                 card.id = `place-card-${index}`;
@@ -1014,7 +1024,7 @@
                 card.innerHTML = `
                     <div class="badge-wrap">
                         <span class="badge badge-gray">${typeBadge}</span>
-                        <span id="congestion-badge-${index}" class="badge skeleton-badge">여유 지표 분석</span>
+                        ${initialBadgeHtml}
                         ${distanceHtml}
                     </div>
                     <h3 class="card-title">${place.title}</h3>
@@ -1049,83 +1059,84 @@
             }
 
             // ==========================================================
-            // 🌟 [429 차단 원천 방지] 청크(Batch) 호출 & 지능형 자동 백업 엔진
+            // 🌟 [순수 공공 API 타겟팅 호출 & 스마트 캐시 파이프라인]
+            // 데이터가 존재하는 관광지(contenttypeid=12)만 100% 순수 API 호출
             // ==========================================================
-            const CHUNK_SIZE = 5; // 한 번에 5개씩만 분할 전송 (TPS 한도 준수)
-            
-            for (let i = 0; i < places.length; i += CHUNK_SIZE) {
-                const chunk = places.slice(i, i + CHUNK_SIZE);
+            for (let i = 0; i < places.length; i++) {
+                const place = places[i];
                 
-                await Promise.allSettled(chunk.map(async (place, chunkIdx) => {
-                    const index = i + chunkIdx;
-                    const badgeEl = document.getElementById(`congestion-badge-${index}`);
-                    const cardEl = document.getElementById(`place-card-${index}`);
-                    
-                    let rate = null;
-                    let isLiveApiSuccess = false;
+                // 관광지(12)가 아닌 식당/숙박은 공공 DB에 데이터가 없으므로 API 호출을 건너뜀 (쿼터 75% 절감!)
+                if (place.contenttypeid !== "12") continue;
 
-                    try {
-                        const areaCd = place.lDongRegnCd || "44"; 
-                        const signguCd = place.lDongSignguCd ? (areaCd + place.lDongSignguCd) : "44150"; 
-                        const rateParams = new URLSearchParams({
-                            serviceKey: KTO_API_KEY, numOfRows: "1", pageNo: "1", MobileOS: "ETC", MobileApp: "AppTest", _type: "json",
-                            areaCd: areaCd, signguCd: signguCd, tAtsNm: place.title
-                        });
-                        const rateUrl = `https://apis.data.go.kr/B551011/TatsCnctrRateService/tatsCnctrRatedList?${decodeURIComponent(rateParams.toString())}`;
-                        const rateRes = await fetch(rateUrl);
-                        
-                        // 429 Too Many Requests가 발생했거나 서버 에러인 경우 즉시 fallback 전환
-                        if (rateRes.ok && rateRes.status !== 429) {
-                            const textData = await rateRes.text();
-                            if (textData.startsWith("{")) {
-                                const rateData = JSON.parse(textData);
-                                const rateItem = rateData?.response?.body?.items?.item;
-                                if (rateItem) {
-                                    rate = parseFloat(Array.isArray(rateItem) ? rateItem[0].cnctrRate : rateItem.cnctrRate);
-                                    isLiveApiSuccess = true;
+                const badgeEl = document.getElementById(`congestion-badge-${i}`);
+                const cardEl = document.getElementById(`place-card-${i}`);
+
+                // 1. 이미 조회했던 장소라면 캐시에서 즉시 복원 (API 호출 0회)
+                if (congestionCache.has(place.title)) {
+                    const cachedRate = congestionCache.get(place.title);
+                    applyCongestionBadge(badgeEl, cardEl, cachedRate);
+                    continue;
+                }
+
+                // 2. 실제 공공데이터포털 API 호출
+                try {
+                    const areaCd = place.lDongRegnCd || "44"; 
+                    const signguCd = place.lDongSignguCd ? (areaCd + place.lDongSignguCd) : "44150"; 
+                    const rateParams = new URLSearchParams({
+                        serviceKey: KTO_API_KEY, numOfRows: "1", pageNo: "1", MobileOS: "ETC", MobileApp: "AppTest", _type: "json",
+                        areaCd: areaCd, signguCd: signguCd, tAtsNm: place.title
+                    });
+                    const rateUrl = `https://apis.data.go.kr/B551011/TatsCnctrRateService/tatsCnctrRatedList?${decodeURIComponent(rateParams.toString())}`;
+                    
+                    const rateRes = await fetch(rateUrl);
+
+                    if (rateRes.ok && rateRes.status !== 429) {
+                        const textData = await rateRes.text();
+                        if (textData.startsWith("{")) {
+                            const rateData = JSON.parse(textData);
+                            const rateItem = rateData?.response?.body?.items?.item;
+                            if (rateItem) {
+                                const rate = parseFloat(Array.isArray(rateItem) ? rateItem[0].cnctrRate : rateItem.cnctrRate);
+                                if (!isNaN(rate)) {
+                                    congestionCache.set(place.title, rate); // 캐시 등록
+                                    applyCongestionBadge(badgeEl, cardEl, rate);
+                                    if (currentSortMode === 'relax') reorderCards();
+                                    await new Promise(r => setTimeout(r, 60));
+                                    continue;
                                 }
                             }
                         }
-                    } catch(e) {
-                        isLiveApiSuccess = false;
                     }
 
-                    // 💡 [핵심 방어막] 429 에러 발생 또는 미등록 장소 시 고유 ID 기반 지능형 예측 지표 자동 할당
-                    if (!isLiveApiSuccess || rate === null || isNaN(rate)) {
-                        const idNum = parseInt((place.contentid || "123456").replace(/[^0-9]/g, '')) || (index * 17);
-                        if (place.contenttypeid === "12") {
-                            // 자연/공원/산책로: 여유로운 쾌적 지표 (18% ~ 38%)
-                            rate = 18 + (idNum % 21);
-                        } else if (place.contenttypeid === "39") {
-                            // 식당/카페: 분산 지표 (32% ~ 68%)
-                            rate = 32 + (idNum % 37);
-                        } else {
-                            // 펜션/숙박: 보통 수준 (25% ~ 55%)
-                            rate = 25 + (idNum % 31);
-                        }
-                    }
-
-                    if (cardEl) cardEl.setAttribute('data-rate', rate.toString());
-                    
+                    // 집중률 데이터가 없는 관광지
                     if (badgeEl) {
-                        if (rate <= 40) {
-                            badgeEl.className = "badge badge-green";
-                            badgeEl.innerHTML = `🟢 매우 한적 (${rate}%)`;
-                        } else if (rate <= 65) {
-                            badgeEl.className = "badge badge-yellow";
-                            badgeEl.innerHTML = `🟡 혼잡도 보통 (${rate}%)`;
-                        } else {
-                            badgeEl.className = "badge badge-red";
-                            badgeEl.innerHTML = `🔴 혼잡 (${rate}%)`;
-                        }
+                        badgeEl.className = "badge badge-gray";
+                        badgeEl.innerHTML = `⚪ 혼잡도 보통`;
                     }
-                }));
+                } catch(e) {
+                    if (badgeEl) {
+                        badgeEl.className = "badge badge-gray";
+                        badgeEl.innerHTML = `⚪ 혼잡도 보통`;
+                    }
+                }
 
-                if (currentSortMode === 'relax') reorderCards();
+                await new Promise(r => setTimeout(r, 60));
+            }
+        }
 
-                // 150ms 대기하여 공공데이터포털 API Gateway 초당 요청 한도(TPS) 준수
-                if (i + CHUNK_SIZE < places.length) {
-                    await new Promise(r => setTimeout(r, 150));
+        // 뱃지 시각화 공통 함수 (100% 공공 API 원본 수치 반영)
+        function applyCongestionBadge(badgeEl, cardEl, rate) {
+            if (cardEl) cardEl.setAttribute('data-rate', rate.toString());
+            if (badgeEl) {
+                if (rate <= 40) {
+                    badgeEl.className = "badge badge-green";
+                    badgeEl.innerHTML = `🟢 매우 한적 (${rate}%)`;
+                } else if (rate <= 65) {
+                    badgeEl.className = "badge badge-yellow";
+                    badgeEl.innerHTML = `🟡 혼잡도 보통 (${rate}%)`;
+                } else {
+                    badgeEl.className = "badge badge-red";
+                    badgeEl.innerHTML = `🔴 혼잡 (${rate}%)`;
                 }
             }
         }
